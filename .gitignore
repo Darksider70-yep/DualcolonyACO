@@ -2,7 +2,6 @@
 /build/
 /cmake-build-*/
 /.dist/
-/scripts
 
 # CMake artifacts
 CMakeCache.txt
@@ -42,6 +41,7 @@ build.ninja
 
 # Generated outputs
 /scripts/results.csv
+/scripts/convergence_chart.png
 
 # IDE/editor settings
 .vscode/
