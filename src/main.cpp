@@ -20,7 +20,14 @@ int main() {
         // Load Berlin52 TSPLIB benchmark instance (EUC_2D)
         const std::string tsp_file = "data/berlin52.tsp";
         TrafficGraph graph(0, 0.1f);
+        std::cout << "Loading TSPLIB data..." << std::endl;
         graph.loadTSPLIB(tsp_file);
+        std::cout << "Cities loaded: " << graph.getNumCities() << std::endl;
+
+        if (graph.getNumCities() == 0) {
+            std::cout << "ERROR: Could not read the TSP file!" << std::endl;
+            return 1;
+        }
 
         // Baseline academic parameters
         constexpr int total_ants = 50;
@@ -50,6 +57,7 @@ int main() {
 
         constexpr int total_iterations = 500;
         std::cout << "Running algorithm for " << total_iterations << " iterations...\n";
+        std::cout << "Starting simulation..." << std::endl;
 
         for (int iteration = 1; iteration <= total_iterations; ++iteration) {
             colony.runIteration();
@@ -57,6 +65,7 @@ int main() {
                 << colony.getLastIterationBestTime() << ","
                 << colony.getBestTourTime() << "\n";
         }
+        std::cout << "Simulation complete! File written." << std::endl;
 
         csv.close();
 
