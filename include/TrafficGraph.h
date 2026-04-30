@@ -14,6 +14,12 @@
  * and pheromone levels. Supports dynamic traffic events and pheromone evaporation.
  */
 class TrafficGraph {
+public:
+    enum class VolatilityMode {
+        NORMAL,
+        HIGH
+    };
+
 private:
     int num_cities_;
     std::vector<std::vector<float>> base_distance_;
@@ -23,14 +29,22 @@ private:
     std::vector<std::pair<float, float>> city_coordinates_;  // (X, Y) coordinates for Euclidean distance
     float pheromone_evaporation_rate_;
     float initial_pheromone_level_;
+    VolatilityMode volatility_mode_;
+    float volatility_multiplier_;
+    float frequency_multiplier_;
 
 public:
     /**
      * @brief Constructor for TrafficGraph.
      * @param num_cities Number of cities in the graph.
      * @param evaporation_rate Pheromone evaporation rate (0 to 1).
+     * @param volatility_mode Traffic volatility profile.
+     * @param volatility_multiplier Baseline multiplier for traffic amplitude.
      */
-    TrafficGraph(int num_cities, float evaporation_rate = 0.1f);
+    TrafficGraph(int num_cities,
+                 float evaporation_rate = 0.1f,
+                 VolatilityMode volatility_mode = VolatilityMode::NORMAL,
+                 float volatility_multiplier = 1.0f);
 
     /**
      * @brief Destructor for TrafficGraph.

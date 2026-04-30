@@ -26,12 +26,13 @@ int main() {
         constexpr float standard_scout_ratio = 0.0f;
         constexpr float dual_scout_ratio = 0.1f;
 
-        TrafficGraph graph(0, evaporation);
+        TrafficGraph graph(0, evaporation, TrafficGraph::VolatilityMode::HIGH, 1.0f);
         graph.loadTSPLIB(tsp_file);
         if (graph.getNumCities() == 0) {
             std::cout << "ERROR: Could not read the TSP file!" << std::endl;
             return 1;
         }
+        std::cout << "Traffic volatility mode: HIGH\n";
 
         std::vector<std::vector<double>> standard_runs(
             total_runs, std::vector<double>(total_iterations, 0.0));

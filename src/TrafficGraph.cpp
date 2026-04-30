@@ -11,10 +11,21 @@
 // Define PI constant for C++17 compatibility
 const double PI = 3.14159265358979323846;
 
-TrafficGraph::TrafficGraph(int num_cities, float evaporation_rate)
+TrafficGraph::TrafficGraph(int num_cities,
+                           float evaporation_rate,
+                           VolatilityMode volatility_mode,
+                           float volatility_multiplier)
     : num_cities_(num_cities),
       pheromone_evaporation_rate_(evaporation_rate),
-      initial_pheromone_level_(0.1f) {
+      initial_pheromone_level_(0.1f),
+      volatility_mode_(volatility_mode),
+      volatility_multiplier_(std::max(0.0f, volatility_multiplier)),
+      frequency_multiplier_(1.0f) {
+    if (volatility_mode_ == VolatilityMode::HIGH) {
+        volatility_multiplier_ *= 2.5f;
+        frequency_multiplier_ = 2.0f;
+    }
+
     // Initialize 2D vectors for the graph matrices
     base_distance_.resize(num_cities, std::vector<float>(num_cities, 0.0f));
     current_traffic_multiplier_.resize(num_cities, std::vector<float>(num_cities, 1.0f));
@@ -251,16 +262,18 @@ double TrafficGraph::calculateRushHourMultiplier(int cityA, int cityB, double cu
         return 1.0;
     }
 
-    // Rush hour parameters
-    double amplitude = 1.5;           // Traffic can be 1.5x worse at peak
-    double frequency = 12.0;          // 12-hour cycle
-    double phase_shift = edge_phase_shifts_[cityA][cityB];
-    
-    // Sine wave formula: 1.0 + amplitude * sin^2((PI * time / frequency) - phase)
-    double angle = (PI * current_time / frequency) - phase_shift;
-    double sine_value = std::sin(angle);
-    double traffic_multiplier = 1.0 + (amplitude * (sine_value * sine_value));
-    
+    // Base rush-hour parameters.
+    const double base_amplitude = 1.5;
+    const double base_cycle = 12.0;
+    const double phase_shift = edge_phase_shifts_[cityA][cityB];
+    const double amplitude = base_amplitude * static_cast<double>(volatility_multiplier_);
+
+    // Frequency multiplier > 1 creates faster oscillations (more frequent spikes).
+    const double angle =
+        ((PI * current_time / base_cycle) * static_cast<double>(frequency_multiplier_)) - phase_shift;
+    const double sine_value = std::sin(angle);
+    const double traffic_multiplier = 1.0 + (amplitude * (sine_value * sine_value));
+
     return traffic_multiplier;
 }
 
