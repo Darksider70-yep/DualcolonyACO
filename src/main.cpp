@@ -104,10 +104,13 @@ int main() {
             std_mean[iteration] = std_sum * inv_runs;
             dual_mean[iteration] = dual_sum * inv_runs;
 
-            const double std_variance =
-                std::max(0.0, (std_sq_sum * inv_runs) - (std_mean[iteration] * std_mean[iteration]));
-            const double dual_variance =
-                std::max(0.0, (dual_sq_sum * inv_runs) - (dual_mean[iteration] * dual_mean[iteration]));
+            const double n = static_cast<double>(total_runs);
+            const double std_variance = (total_runs > 1)
+                ? std::max(0.0, (std_sq_sum - ((std_sum * std_sum) / n)) / (n - 1.0))
+                : 0.0;
+            const double dual_variance = (total_runs > 1)
+                ? std::max(0.0, (dual_sq_sum - ((dual_sum * dual_sum) / n)) / (n - 1.0))
+                : 0.0;
 
             std_dev[iteration] = std::sqrt(std_variance);
             dual_dev[iteration] = std::sqrt(dual_variance);
