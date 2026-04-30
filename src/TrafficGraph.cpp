@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include <cctype>
 #include <fstream>
 #include <sstream>
 #include <random>
@@ -113,61 +114,123 @@ void TrafficGraph::loadTSPLIB(const std::string& filename) {
         throw std::runtime_error("Cannot open TSPLIB file: " + filename);
     }
 
+    auto trim = [](const std::string& input) {
+        std::size_t start = 0;
+        while (start < input.size() && std::isspace(static_cast<unsigned char>(input[start]))) {
+            ++start;
+        }
+
+        std::size_t end = input.size();
+        while (end > start && std::isspace(static_cast<unsigned char>(input[end - 1]))) {
+            --end;
+        }
+
+        return input.substr(start, end - start);
+    };
+
     std::string line;
-    int node_count = 0;
-    bool reading_coordinates = false;
+    int parsed_dimension = -1;
+    bool found_coord_section = false;
 
-    // Parse file header
     while (std::getline(file, line)) {
-        if (line.find("DIMENSION:") != std::string::npos) {
-            std::istringstream iss(line);
-            std::string key;
-            int dim;
-            iss >> key >> dim;
-            node_count = dim;
-            num_cities_ = dim;
-            
-            // Reinitialize matrices with new size
-            base_distance_.assign(num_cities_, std::vector<float>(num_cities_, 0.0f));
-            city_coordinates_.assign(num_cities_, std::pair<float, float>(0.0f, 0.0f));
+        const std::string trimmed = trim(line);
+        if (trimmed.empty()) {
+            continue;
         }
-        else if (line.find("NODE_COORD_SECTION") != std::string::npos) {
-            reading_coordinates = true;
-            break;
-        }
-    }
 
-    // Read node coordinates
-    int node_id = 0;
-    while (std::getline(file, line) && reading_coordinates) {
-        if (line.find("EOF") != std::string::npos) {
+        if (trimmed == "NODE_COORD_SECTION") {
+            found_coord_section = true;
             break;
         }
-        
-        std::istringstream iss(line);
-        int id;
-        float x, y;
-        
-        if (iss >> id >> x >> y) {
-            if (id > 0 && id <= node_count) {
-                city_coordinates_[id - 1] = std::make_pair(x, y);
+
+        if (trimmed.rfind("DIMENSION", 0) == 0) {
+            std::size_t colon_pos = trimmed.find(':');
+            std::string dim_part = (colon_pos != std::string::npos) ? trimmed.substr(colon_pos + 1) : trimmed.substr(9);
+            dim_part = trim(dim_part);
+            if (dim_part.empty()) {
+                throw std::runtime_error("Invalid TSPLIB DIMENSION line in: " + filename);
             }
+
+            parsed_dimension = std::stoi(dim_part);
         }
     }
-    file.close();
 
-    // Calculate Euclidean distances
+    if (!found_coord_section) {
+        throw std::runtime_error("TSPLIB NODE_COORD_SECTION not found in: " + filename);
+    }
+    if (parsed_dimension <= 0) {
+        throw std::runtime_error("Invalid TSPLIB DIMENSION in: " + filename);
+    }
+
+    num_cities_ = parsed_dimension;
+    base_distance_.assign(num_cities_, std::vector<float>(num_cities_, 0.0f));
+    current_traffic_multiplier_.assign(num_cities_, std::vector<float>(num_cities_, 1.0f));
+    pheromone_level_.assign(num_cities_, std::vector<float>(num_cities_, 0.1f));
+    edge_phase_shifts_.assign(num_cities_, std::vector<float>(num_cities_, 0.0f));
+    city_coordinates_.assign(num_cities_, std::pair<float, float>(0.0f, 0.0f));
+
+    std::vector<bool> seen_nodes(static_cast<std::size_t>(num_cities_), false);
+    int loaded_nodes = 0;
+
+    while (std::getline(file, line)) {
+        const std::string trimmed = trim(line);
+        if (trimmed.empty()) {
+            continue;
+        }
+        if (trimmed == "EOF") {
+            break;
+        }
+
+        std::istringstream iss(trimmed);
+        int id = 0;
+        double x = 0.0;
+        double y = 0.0;
+        if (!(iss >> id >> x >> y)) {
+            continue;
+        }
+
+        if (id < 1 || id > num_cities_) {
+            throw std::runtime_error("TSPLIB node id out of range in: " + filename);
+        }
+
+        const int index = id - 1;
+        if (!seen_nodes[static_cast<std::size_t>(index)]) {
+            seen_nodes[static_cast<std::size_t>(index)] = true;
+            loaded_nodes++;
+        }
+
+        city_coordinates_[index] = {static_cast<float>(x), static_cast<float>(y)};
+    }
+
+    if (loaded_nodes < num_cities_) {
+        throw std::runtime_error(
+            "TSPLIB coordinate count mismatch in: " + filename +
+            " (expected " + std::to_string(num_cities_) +
+            ", loaded " + std::to_string(loaded_nodes) + ")"
+        );
+    }
+
+    std::mt19937 rng(42);
+    std::uniform_real_distribution<float> phase_dist(0.0f, static_cast<float>(2.0 * PI));
+
     for (int i = 0; i < num_cities_; ++i) {
         for (int j = i; j < num_cities_; ++j) {
             if (i == j) {
                 base_distance_[i][j] = 0.0f;
-            } else {
-                float dx = city_coordinates_[i].first - city_coordinates_[j].first;
-                float dy = city_coordinates_[i].second - city_coordinates_[j].second;
-                float distance = std::sqrt(dx * dx + dy * dy);
-                base_distance_[i][j] = distance;
-                base_distance_[j][i] = distance;  // Symmetric
+                edge_phase_shifts_[i][j] = 0.0f;
+                continue;
             }
+
+            double dx = static_cast<double>(city_coordinates_[i].first) - static_cast<double>(city_coordinates_[j].first);
+            double dy = static_cast<double>(city_coordinates_[i].second) - static_cast<double>(city_coordinates_[j].second);
+            float distance = static_cast<float>(std::round(std::sqrt((dx * dx) + (dy * dy))));
+
+            base_distance_[i][j] = distance;
+            base_distance_[j][i] = distance;
+
+            float phase = phase_dist(rng);
+            edge_phase_shifts_[i][j] = phase;
+            edge_phase_shifts_[j][i] = phase;
         }
     }
 }

@@ -22,7 +22,8 @@ ColonyManager::ColonyManager(TrafficGraph& graph,
       Q_constant_(100.0),  // Pheromone deposition constant
       total_iterations_(0),
       current_iteration_(0),
-      best_tour_time_(std::numeric_limits<double>::max()) {
+      best_tour_time_(std::numeric_limits<double>::max()),
+      last_iteration_best_time_(std::numeric_limits<double>::max()) {
     
     // Initialize worker ants
     for (int i = 0; i < num_workers; ++i) {
@@ -131,6 +132,8 @@ void ColonyManager::runIteration() {
     }
 
     // Check against Global Best
+    last_iteration_best_time_ = iteration_best_time;
+
     if (iteration_best_time < best_tour_time_) {
         best_tour_time_ = iteration_best_time;
         if (best_ant != nullptr) {
@@ -163,8 +166,13 @@ double ColonyManager::getBestTourTime() const {
     return best_tour_time_;
 }
 
+double ColonyManager::getLastIterationBestTime() const {
+    return last_iteration_best_time_;
+}
+
 void ColonyManager::reset() {
     best_tour_time_ = std::numeric_limits<double>::max();
+    last_iteration_best_time_ = std::numeric_limits<double>::max();
     best_tour_path_.clear();
     current_iteration_ = 0;
     initializeSwarm();

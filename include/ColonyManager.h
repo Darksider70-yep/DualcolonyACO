@@ -32,6 +32,7 @@ private:
     int total_iterations_;
     int current_iteration_;
     double best_tour_time_;
+    double last_iteration_best_time_;
     std::vector<int> best_tour_path_;
 
 public:
@@ -101,6 +102,12 @@ public:
      * @return Best tour time (total path cost).
      */
     double getBestTourTime() const;
+
+    /**
+     * @brief Get the best tour time found in the most recent iteration.
+     * @return Iteration best tour time.
+     */
+    double getLastIterationBestTime() const;
 
     /**
      * @brief Reset the algorithm state for a new run.
