@@ -1,6 +1,8 @@
 # Build directories
 /build/
 /cmake-build-*/
+/.dist/
+/scripts
 
 # CMake artifacts
 CMakeCache.txt
@@ -37,6 +39,9 @@ build.ninja
 *.swp
 *.swo
 *~
+
+# Generated outputs
+/scripts/results.csv
 
 # IDE/editor settings
 .vscode/
