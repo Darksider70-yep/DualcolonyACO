@@ -1,36 +1,49 @@
-#!/usr/bin/env python3
-"""
-Visualization script for Dual-Colony ACO results.
-
-This script reads the algorithm output and generates visualizations including:
-- Tour path visualization on the traffic graph
-- Pheromone heatmaps over time
-- Convergence curves comparing worker vs scout ant contributions
-- Traffic event timelines and their impact on solution quality
-"""
-
-import sys
-import json
-import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import os
 
-# TODO: Implement visualization functions
-# 1. load_results() - Parse algorithm output files
-# 2. plot_tour() - Visualize the best tour found
-# 3. plot_pheromone_heatmap() - Show pheromone levels on edges
-# 4. plot_convergence() - Show algorithm convergence over iterations
-# 5. plot_traffic_impact() - Analyze impact of traffic events
+def generate_convergence_chart():
+    # Construct the path to the CSV file
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    csv_path = os.path.join(current_dir, "results.csv")
 
-def main():
-    """Main entry point for visualization script."""
-    print("=" * 50)
-    print("Dual-Colony ACO Visualization Tool")
-    print("=" * 50)
-    print("\nVisualization scaffold ready for implementation.")
-    print("Awaiting algorithm results to visualize.")
+    if not os.path.exists(csv_path):
+        print(f"Error: Could not find data file at {csv_path}")
+        return
+
+    print("Loading telemetry data...")
+    # Load the telemetry data
+    data = pd.read_csv(csv_path)
+
+    # Set up the academic plot style
+    try:
+        plt.style.use('seaborn-v0_8-whitegrid')
+    except OSError:
+        # Fallback if the specific seaborn style is missing in older matplotlib versions
+        plt.style.use('ggplot')
+        
+    plt.figure(figsize=(10, 6), dpi=300)
+
+    # Plot the Iteration Best (lighter, semi-transparent to show variance)
+    plt.plot(data['Iteration'], data['Iteration_Best'], 
+             color='#7fb3d5', alpha=0.6, linewidth=1, label='Iteration Best (Swarm Variance)')
+
+    # Plot the Global Best (thick, bold line to show convergence)
+    plt.plot(data['Iteration'], data['Global_Best'], 
+             color='#c0392b', linewidth=2.5, label='Global Best (Optimal Route Found)')
+
+    # Academic Formatting
+    plt.title('Dual-Colony ACO Convergence in Dynamic Traffic (Berlin52)', fontsize=14, fontweight='bold', pad=15)
+    plt.xlabel('Algorithm Iterations', fontsize=12)
+    plt.ylabel('Total Route Time (Cost)', fontsize=12)
+    plt.legend(loc='upper right', frameon=True, shadow=True)
     
-    # TODO: Parse command-line arguments for result files
-    # TODO: Generate and display visualizations
+    # Save the chart as a high-res image for the research paper
+    output_img = os.path.join(current_dir, "convergence_chart.png")
+    plt.savefig(output_img, bbox_inches='tight')
+    
+    print(f"Success! High-resolution chart saved to: {output_img}")
+    plt.show()
 
 if __name__ == "__main__":
-    main()
+    generate_convergence_chart()
