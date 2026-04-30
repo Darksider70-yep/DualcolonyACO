@@ -42,6 +42,8 @@ build.ninja
 # Generated outputs
 /scripts/results.csv
 /scripts/convergence_chart.png
+/scripts/journal_chart_1.png
+/scripts/journal_baseline.csv
 
 # IDE/editor settings
 .vscode/

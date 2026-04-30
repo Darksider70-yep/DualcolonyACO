@@ -12,22 +12,17 @@
 const double PI = 3.14159265358979323846;
 
 TrafficGraph::TrafficGraph(int num_cities, float evaporation_rate)
-    : num_cities_(num_cities), pheromone_evaporation_rate_(evaporation_rate) {
+    : num_cities_(num_cities),
+      pheromone_evaporation_rate_(evaporation_rate),
+      initial_pheromone_level_(0.1f) {
     // Initialize 2D vectors for the graph matrices
     base_distance_.resize(num_cities, std::vector<float>(num_cities, 0.0f));
     current_traffic_multiplier_.resize(num_cities, std::vector<float>(num_cities, 1.0f));
-    pheromone_level_.resize(num_cities, std::vector<float>(num_cities, 0.1f));
+    pheromone_level_.resize(num_cities, std::vector<float>(num_cities, initial_pheromone_level_));
     edge_phase_shifts_.resize(num_cities, std::vector<float>(num_cities, 0.0f));
     city_coordinates_.resize(num_cities, std::pair<float, float>(0.0f, 0.0f));
-    
-    // Initialize pseudo-random phase shifts for each edge
-    std::mt19937 rng(42);  // Seeded for reproducibility
-    std::uniform_real_distribution<float> phase_dist(0.0f, 2.0f * PI);
-    for (int i = 0; i < num_cities; ++i) {
-        for (int j = 0; j < num_cities; ++j) {
-            edge_phase_shifts_[i][j] = phase_dist(rng);
-        }
-    }
+
+    randomizePhaseShifts();
 }
 
 TrafficGraph::~TrafficGraph() {
@@ -64,6 +59,28 @@ void TrafficGraph::evaporatePheromones() {
     }
 }
 
+void TrafficGraph::resetPheromones() {
+    for (int i = 0; i < num_cities_; ++i) {
+        for (int j = 0; j < num_cities_; ++j) {
+            pheromone_level_[i][j] = initial_pheromone_level_;
+        }
+    }
+}
+
+void TrafficGraph::randomizePhaseShifts() {
+    std::mt19937 rng(std::random_device{}());
+    std::uniform_real_distribution<float> phase_dist(0.0f, static_cast<float>(2.0 * PI));
+
+    for (int i = 0; i < num_cities_; ++i) {
+        edge_phase_shifts_[i][i] = 0.0f;
+        for (int j = i + 1; j < num_cities_; ++j) {
+            const float phase = phase_dist(rng);
+            edge_phase_shifts_[i][j] = phase;
+            edge_phase_shifts_[j][i] = phase;
+        }
+    }
+}
+
 float TrafficGraph::getEffectiveDistance(int cityA, int cityB) const {
     if (cityA >= 0 && cityA < num_cities_ && cityB >= 0 && cityB < num_cities_) {
         return base_distance_[cityA][cityB] * current_traffic_multiplier_[cityA][cityB];
@@ -75,7 +92,7 @@ float TrafficGraph::getPheromoneLevel(int cityA, int cityB) const {
     if (cityA >= 0 && cityA < num_cities_ && cityB >= 0 && cityB < num_cities_) {
         return pheromone_level_[cityA][cityB];
     }
-    return 0.1f;
+    return initial_pheromone_level_;
 }
 
 void TrafficGraph::setPheromoneLevel(int cityA, int cityB, float level) {
@@ -165,7 +182,7 @@ void TrafficGraph::loadTSPLIB(const std::string& filename) {
     num_cities_ = parsed_dimension;
     base_distance_.assign(num_cities_, std::vector<float>(num_cities_, 0.0f));
     current_traffic_multiplier_.assign(num_cities_, std::vector<float>(num_cities_, 1.0f));
-    pheromone_level_.assign(num_cities_, std::vector<float>(num_cities_, 0.1f));
+    pheromone_level_.assign(num_cities_, std::vector<float>(num_cities_, initial_pheromone_level_));
     edge_phase_shifts_.assign(num_cities_, std::vector<float>(num_cities_, 0.0f));
     city_coordinates_.assign(num_cities_, std::pair<float, float>(0.0f, 0.0f));
 
@@ -210,14 +227,10 @@ void TrafficGraph::loadTSPLIB(const std::string& filename) {
         );
     }
 
-    std::mt19937 rng(42);
-    std::uniform_real_distribution<float> phase_dist(0.0f, static_cast<float>(2.0 * PI));
-
     for (int i = 0; i < num_cities_; ++i) {
         for (int j = i; j < num_cities_; ++j) {
             if (i == j) {
                 base_distance_[i][j] = 0.0f;
-                edge_phase_shifts_[i][j] = 0.0f;
                 continue;
             }
 
@@ -227,12 +240,10 @@ void TrafficGraph::loadTSPLIB(const std::string& filename) {
 
             base_distance_[i][j] = distance;
             base_distance_[j][i] = distance;
-
-            float phase = phase_dist(rng);
-            edge_phase_shifts_[i][j] = phase;
-            edge_phase_shifts_[j][i] = phase;
         }
     }
+
+    randomizePhaseShifts();
 }
 
 double TrafficGraph::calculateRushHourMultiplier(int cityA, int cityB, double current_time) const {

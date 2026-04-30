@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <set>
+#include <cstdint>
+#include <random>
 #include "TrafficGraph.h"
 
 /**
@@ -20,14 +22,16 @@ protected:
     double total_path_time_;  // Changed to double for precision
     double current_time_;     // Current simulation time
     int ant_id_;
+    std::mt19937 rng_;
 
 public:
     /**
      * @brief Constructor for Ant.
      * @param start_city Initial city for the ant.
      * @param ant_id Unique identifier for this ant.
+     * @param seed RNG seed for stochastic route construction.
      */
-    Ant(int start_city, int ant_id);
+    Ant(int start_city, int ant_id, std::uint32_t seed);
 
     /**
      * @brief Virtual destructor for Ant.
@@ -122,8 +126,13 @@ public:
      * @param ant_id Unique identifier for this ant.
      * @param alpha Pheromone influence parameter.
      * @param beta Distance/traffic influence parameter.
+     * @param seed RNG seed for stochastic route construction.
      */
-    WorkerAnt(int start_city, int ant_id, float alpha = 1.0f, float beta = 2.0f);
+    WorkerAnt(int start_city,
+              int ant_id,
+              float alpha = 1.0f,
+              float beta = 2.0f,
+              std::uint32_t seed = std::random_device{}());
 
     /**
      * @brief Choose the next city using pheromone-distance tradeoff.
@@ -157,9 +166,15 @@ public:
      * @param beta Distance/traffic influence parameter.
      * @param gamma Pheromone avoidance factor.
      * @param exploration_factor Randomness for exploration.
+     * @param seed RNG seed for stochastic route construction.
      */
-    ScoutAnt(int start_city, int ant_id, float alpha = 0.3f, float beta = 2.5f, 
-             float gamma = 2.0f, float exploration_factor = 0.3f);
+    ScoutAnt(int start_city,
+             int ant_id,
+             float alpha = 0.3f,
+             float beta = 2.5f,
+             float gamma = 2.0f,
+             float exploration_factor = 0.3f,
+             std::uint32_t seed = std::random_device{}());
 
     /**
      * @brief Choose the next city with emphasis on exploration.

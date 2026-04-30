@@ -9,8 +9,12 @@
 // Ant Base Class Implementation
 // ========================
 
-Ant::Ant(int start_city, int ant_id)
-    : current_city_(start_city), total_path_time_(0.0), current_time_(0.0), ant_id_(ant_id) {
+Ant::Ant(int start_city, int ant_id, std::uint32_t seed)
+    : current_city_(start_city),
+      total_path_time_(0.0),
+      current_time_(0.0),
+      ant_id_(ant_id),
+      rng_(seed) {
     visited_cities_.push_back(start_city);
 }
 
@@ -61,8 +65,8 @@ const std::vector<int>& Ant::getTour() const {
 // WorkerAnt Implementation
 // ========================
 
-WorkerAnt::WorkerAnt(int start_city, int ant_id, float alpha, float beta)
-    : Ant(start_city, ant_id), alpha_(alpha), beta_(beta) {
+WorkerAnt::WorkerAnt(int start_city, int ant_id, float alpha, float beta, std::uint32_t seed)
+    : Ant(start_city, ant_id, seed), alpha_(alpha), beta_(beta) {
 }
 
 int WorkerAnt::chooseNextCity(const TrafficGraph& graph, double current_time) {
@@ -102,9 +106,8 @@ int WorkerAnt::chooseNextCity(const TrafficGraph& graph, double current_time) {
     }
 
     // Generate random selection
-    static std::mt19937 rng(std::random_device{}());
     std::uniform_real_distribution<double> dist(0.0, total_weight);
-    double spin = dist(rng);
+    double spin = dist(rng_);
 
     double cumulative = 0.0;
     for (int city = 0; city < num_cities; ++city) {
@@ -130,8 +133,18 @@ int WorkerAnt::chooseNextCity(const TrafficGraph& graph, double current_time) {
 // ScoutAnt Implementation
 // ========================
 
-ScoutAnt::ScoutAnt(int start_city, int ant_id, float alpha, float beta, float gamma, float exploration_factor)
-    : Ant(start_city, ant_id), alpha_(alpha), beta_(beta), gamma_(gamma), exploration_factor_(exploration_factor) {
+ScoutAnt::ScoutAnt(int start_city,
+                   int ant_id,
+                   float alpha,
+                   float beta,
+                   float gamma,
+                   float exploration_factor,
+                   std::uint32_t seed)
+    : Ant(start_city, ant_id, seed),
+      alpha_(alpha),
+      beta_(beta),
+      gamma_(gamma),
+      exploration_factor_(exploration_factor) {
 }
 
 int ScoutAnt::chooseNextCity(const TrafficGraph& graph, double current_time) {
@@ -156,9 +169,8 @@ int ScoutAnt::chooseNextCity(const TrafficGraph& graph, double current_time) {
             double weight = pheromone_factor * std::pow(eta, beta_);
             
             // Add exploration randomness
-            static std::mt19937 rng(std::random_device{}());
             std::uniform_real_distribution<double> explore_dist(0.0, exploration_factor_);
-            weight *= (1.0 + explore_dist(rng));
+            weight *= (1.0 + explore_dist(rng_));
             
             probabilities[city] = weight;
             total_weight += weight;
@@ -177,9 +189,8 @@ int ScoutAnt::chooseNextCity(const TrafficGraph& graph, double current_time) {
     }
 
     // Generate random selection
-    static std::mt19937 rng(std::random_device{}());
     std::uniform_real_distribution<double> dist(0.0, total_weight);
-    double spin = dist(rng);
+    double spin = dist(rng_);
 
     double cumulative = 0.0;
     for (int city = 0; city < num_cities; ++city) {

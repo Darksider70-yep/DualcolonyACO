@@ -4,6 +4,36 @@
 #include <limits>
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
+#include <stdexcept>
+
+void ColonyManager::rebuildAntPopulation(int num_workers, int num_scouts) {
+    num_workers = std::max(0, num_workers);
+    num_scouts = std::max(0, num_scouts);
+
+    worker_ants_.clear();
+    scout_ants_.clear();
+
+    std::uniform_int_distribution<std::uint32_t> seed_dist(
+        0u, std::numeric_limits<std::uint32_t>::max());
+
+    for (int i = 0; i < num_workers; ++i) {
+        worker_ants_.push_back(
+            std::make_unique<WorkerAnt>(0, i, alpha_, beta_, seed_dist(rng_)));
+    }
+
+    const float gamma = 2.0f;
+    for (int i = 0; i < num_scouts; ++i) {
+        scout_ants_.push_back(
+            std::make_unique<ScoutAnt>(0,
+                                       num_workers + i,
+                                       alpha_ * 0.3f,
+                                       beta_,
+                                       gamma,
+                                       scout_ratio_,
+                                       seed_dist(rng_)));
+    }
+}
 
 ColonyManager::ColonyManager(TrafficGraph& graph,
                              int num_workers,
@@ -14,6 +44,7 @@ ColonyManager::ColonyManager(TrafficGraph& graph,
                              float scout_ratio,
                              float pheromone_deposit_factor)
     : traffic_graph_(graph),
+      rng_(std::random_device{}()),
       alpha_(alpha),
       beta_(beta),
       evaporation_rate_(evaporation_rate),
@@ -24,21 +55,12 @@ ColonyManager::ColonyManager(TrafficGraph& graph,
       current_iteration_(0),
       best_tour_time_(std::numeric_limits<double>::max()),
       last_iteration_best_time_(std::numeric_limits<double>::max()) {
-    
-    // Initialize worker ants
-    for (int i = 0; i < num_workers; ++i) {
-        worker_ants_.push_back(
-            std::make_unique<WorkerAnt>(0, i, alpha, beta)
-        );
+    const int total_ants = std::max(0, num_workers) + std::max(0, num_scouts);
+    if (total_ants > 0) {
+        scout_ratio_ = static_cast<float>(std::max(0, num_scouts)) / static_cast<float>(total_ants);
     }
-    
-    // Initialize scout ants with gamma parameter (2.0 for pheromone avoidance)
-    float gamma = 2.0f;
-    for (int i = 0; i < num_scouts; ++i) {
-        scout_ants_.push_back(
-            std::make_unique<ScoutAnt>(0, num_workers + i, alpha * 0.3f, beta, gamma, scout_ratio)
-        );
-    }
+
+    rebuildAntPopulation(num_workers, num_scouts);
 }
 
 ColonyManager::~ColonyManager() {
@@ -195,15 +217,23 @@ void ColonyManager::setParameters(float alpha, float beta, float evaporation_rat
     beta_ = beta;
     evaporation_rate_ = evaporation_rate;
     scout_ratio_ = scout_ratio;
-    
-    // Update worker ant parameters
-    for (auto& ant : worker_ants_) {
-        // Access private members through friend class or add setter methods
-        // For now, we'll recreate the ants with new parameters
+
+    const int num_workers = static_cast<int>(worker_ants_.size());
+    const int num_scouts = static_cast<int>(scout_ants_.size());
+    rebuildAntPopulation(num_workers, num_scouts);
+    reset();
+}
+
+void ColonyManager::configurePopulation(int total_ants, float scout_ratio) {
+    if (total_ants <= 0) {
+        throw std::invalid_argument("total_ants must be > 0");
     }
-    
-    // Update scout ant parameters
-    for (auto& ant : scout_ants_) {
-        // Same as above
-    }
+
+    const float clamped_ratio = std::clamp(scout_ratio, 0.0f, 1.0f);
+    const int num_scouts = static_cast<int>(std::lround(static_cast<double>(total_ants) * clamped_ratio));
+    const int num_workers = total_ants - num_scouts;
+
+    scout_ratio_ = clamped_ratio;
+    rebuildAntPopulation(num_workers, num_scouts);
+    reset();
 }

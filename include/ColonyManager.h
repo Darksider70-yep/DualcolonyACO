@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <memory>
+#include <random>
 #include "TrafficGraph.h"
 #include "Ant.h"
 
@@ -17,8 +18,11 @@
 class ColonyManager {
 private:
     TrafficGraph& traffic_graph_;
+    std::mt19937 rng_;
     std::vector<std::unique_ptr<WorkerAnt>> worker_ants_;
     std::vector<std::unique_ptr<ScoutAnt>> scout_ants_;
+
+    void rebuildAntPopulation(int num_workers, int num_scouts);
     
     // Algorithm parameters
     float alpha_;                      // Pheromone influence factor
@@ -140,6 +144,13 @@ public:
      * @param scout_ratio Ratio of scout ants to total ants.
      */
     void setParameters(float alpha, float beta, float evaporation_rate, float scout_ratio);
+
+    /**
+     * @brief Reconfigure worker/scout split from a total-ant budget and scout ratio.
+     * @param total_ants Total number of ants in the colony.
+     * @param scout_ratio Ratio in [0, 1] used to allocate scout ants.
+     */
+    void configurePopulation(int total_ants, float scout_ratio);
 };
 
 #endif // COLONY_MANAGER_H

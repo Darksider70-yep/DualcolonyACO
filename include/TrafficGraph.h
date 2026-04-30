@@ -22,6 +22,7 @@ private:
     std::vector<std::vector<float>> edge_phase_shifts_;  // Phase shift for each edge
     std::vector<std::pair<float, float>> city_coordinates_;  // (X, Y) coordinates for Euclidean distance
     float pheromone_evaporation_rate_;
+    float initial_pheromone_level_;
 
 public:
     /**
@@ -59,6 +60,16 @@ public:
      * @brief Apply pheromone evaporation across the entire graph.
      */
     void evaporatePheromones();
+
+    /**
+     * @brief Reset all pheromone levels to the initial baseline value.
+     */
+    void resetPheromones();
+
+    /**
+     * @brief Regenerate random traffic phase shifts for all edges.
+     */
+    void randomizePhaseShifts();
 
     /**
      * @brief Get the effective edge weight (distance * traffic multiplier).
