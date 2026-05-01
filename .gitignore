@@ -48,6 +48,8 @@ build.ninja
 /scripts/journal_statistics.csv
 /scripts/journal_chart_sweep.png
 /scripts/journal_ratio_sweep.csv
+/scripts/journal_chart_amnesia.png
+/scripts/journal_amnesia.csv
 
 # IDE/editor settings
 .vscode/
