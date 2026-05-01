@@ -30,19 +30,32 @@ set(SOURCES
 # Create the executable
 add_executable(DualColonyACO ${SOURCES})
 
+set(GAMMA_ABLATION_SOURCES
+    src/gamma_ablation.cpp
+    src/TrafficGraph.cpp
+    src/Ant.cpp
+    src/ColonyManager.cpp
+)
+
+add_executable(GammaAblation ${GAMMA_ABLATION_SOURCES})
+
 # Set compiler flags for optimization and warnings
 if(MSVC)
     # Microsoft Visual C++
     target_compile_options(DualColonyACO PRIVATE /W4 /O2)
+    target_compile_options(GammaAblation PRIVATE /W4 /O2)
 else()
     # GCC/Clang
     target_compile_options(DualColonyACO PRIVATE -Wall -Wextra -Wpedantic -O2)
+    target_compile_options(GammaAblation PRIVATE -Wall -Wextra -Wpedantic -O2)
 endif()
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
     target_link_libraries(DualColonyACO PRIVATE OpenMP::OpenMP_CXX)
+    target_link_libraries(GammaAblation PRIVATE OpenMP::OpenMP_CXX)
     target_compile_definitions(DualColonyACO PRIVATE DUALCOLONY_OPENMP=1)
+    target_compile_definitions(GammaAblation PRIVATE DUALCOLONY_OPENMP=1)
     message(STATUS "OpenMP enabled for run-level parallelism.")
 else()
     message(STATUS "OpenMP not found; building with sequential execution.")
@@ -52,3 +65,4 @@ endif()
 message(STATUS "DualColonyACO configured for C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "Executable output: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/DualColonyACO")
+message(STATUS "Executable output: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/GammaAblation")

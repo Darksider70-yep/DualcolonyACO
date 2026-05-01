@@ -52,6 +52,8 @@ build.ninja
 /scripts/journal_amnesia.csv
 /scripts/journal_chart_ch150.png
 /scripts/journal_baseline_ch150.csv
+/scripts/journal_chart_scaled_ch150.png
+/scripts/journal_scaled_ch150.csv
 
 # IDE/editor settings
 .vscode/

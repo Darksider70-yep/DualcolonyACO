@@ -22,14 +22,13 @@ void ColonyManager::rebuildAntPopulation(int num_workers, int num_scouts) {
             std::make_unique<WorkerAnt>(0, i, alpha_, beta_, seed_dist(rng_)));
     }
 
-    const float gamma = 2.0f;
     for (int i = 0; i < num_scouts; ++i) {
         scout_ants_.push_back(
             std::make_unique<ScoutAnt>(0,
                                        num_workers + i,
                                        alpha_ * 0.3f,
                                        beta_,
-                                       gamma,
+                                       scout_gamma_,
                                        scout_ratio_,
                                        seed_dist(rng_)));
     }
@@ -42,13 +41,15 @@ ColonyManager::ColonyManager(TrafficGraph& graph,
                              float beta,
                              float evaporation_rate,
                              float scout_ratio,
-                             float pheromone_deposit_factor)
+                             float pheromone_deposit_factor,
+                             float scout_gamma)
     : traffic_graph_(graph),
       rng_(std::random_device{}()),
       alpha_(alpha),
       beta_(beta),
       evaporation_rate_(std::clamp(evaporation_rate, 0.0f, 1.0f)),
       scout_ratio_(scout_ratio),
+      scout_gamma_(std::max(0.0f, scout_gamma)),
       pheromone_deposit_factor_(pheromone_deposit_factor),
       Q_constant_(100.0),  // Pheromone deposition constant
       total_iterations_(0),
@@ -228,6 +229,14 @@ void ColonyManager::setParameters(float alpha, float beta, float evaporation_rat
     evaporation_rate_ = std::clamp(evaporation_rate, 0.0f, 1.0f);
     scout_ratio_ = scout_ratio;
 
+    const int num_workers = static_cast<int>(worker_ants_.size());
+    const int num_scouts = static_cast<int>(scout_ants_.size());
+    rebuildAntPopulation(num_workers, num_scouts);
+    reset();
+}
+
+void ColonyManager::setScoutGamma(float scout_gamma) {
+    scout_gamma_ = std::max(0.0f, scout_gamma);
     const int num_workers = static_cast<int>(worker_ants_.size());
     const int num_scouts = static_cast<int>(scout_ants_.size());
     rebuildAntPopulation(num_workers, num_scouts);

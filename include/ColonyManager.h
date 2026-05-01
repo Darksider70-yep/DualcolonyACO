@@ -29,6 +29,7 @@ private:
     float beta_;                       // Distance/traffic influence factor
     float evaporation_rate_;           // Pheromone evaporation rate
     float scout_ratio_;                // Ratio of scout ants to total ants
+    float scout_gamma_;                // Pheromone avoidance exponent for scouts
     float pheromone_deposit_factor_;   // Factor for pheromone deposition
     double Q_constant_;                // Pheromone deposition constant
     
@@ -58,7 +59,8 @@ public:
                   float beta = 2.0f,
                   float evaporation_rate = 0.6f,
                   float scout_ratio = 0.2f,
-                  float pheromone_deposit_factor = 1.0f);
+                  float pheromone_deposit_factor = 1.0f,
+                  float scout_gamma = 2.0f);
 
     /**
      * @brief Destructor for ColonyManager.
@@ -144,6 +146,12 @@ public:
      * @param scout_ratio Ratio of scout ants to total ants.
      */
     void setParameters(float alpha, float beta, float evaporation_rate, float scout_ratio);
+
+    /**
+     * @brief Set the scout pheromone-avoidance exponent (gamma).
+     * @param scout_gamma Gamma value used by ScoutAnt decision rule.
+     */
+    void setScoutGamma(float scout_gamma);
 
     /**
      * @brief Reconfigure worker/scout split from a total-ant budget and scout ratio.
