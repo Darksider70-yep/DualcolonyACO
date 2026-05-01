@@ -39,6 +39,15 @@ else()
     target_compile_options(DualColonyACO PRIVATE -Wall -Wextra -Wpedantic -O2)
 endif()
 
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(DualColonyACO PRIVATE OpenMP::OpenMP_CXX)
+    target_compile_definitions(DualColonyACO PRIVATE DUALCOLONY_OPENMP=1)
+    message(STATUS "OpenMP enabled for run-level parallelism.")
+else()
+    message(STATUS "OpenMP not found; building with sequential execution.")
+endif()
+
 # Print build information
 message(STATUS "DualColonyACO configured for C++${CMAKE_CXX_STANDARD}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
