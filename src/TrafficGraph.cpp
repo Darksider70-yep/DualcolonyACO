@@ -21,10 +21,6 @@ TrafficGraph::TrafficGraph(int num_cities,
       volatility_mode_(volatility_mode),
       volatility_multiplier_(std::max(0.0f, volatility_multiplier)),
       frequency_multiplier_(1.0f) {
-    if (volatility_mode_ == VolatilityMode::HIGH) {
-        volatility_multiplier_ *= 2.5f;
-        frequency_multiplier_ = 2.0f;
-    }
 
     // Initialize 2D vectors for the graph matrices
     base_distance_.resize(num_cities, std::vector<float>(num_cities, 0.0f));
@@ -265,12 +261,19 @@ double TrafficGraph::calculateRushHourMultiplier(int cityA, int cityB, double cu
     // Base rush-hour parameters.
     const double base_amplitude = 1.5;
     const double base_cycle = 12.0;
+    const double mode_amplitude_scale =
+        (volatility_mode_ == VolatilityMode::HIGH) ? 2.5 : 1.0;
+    const double mode_frequency_scale =
+        (volatility_mode_ == VolatilityMode::HIGH) ? 2.0 : 1.0;
     const double phase_shift = edge_phase_shifts_[cityA][cityB];
-    const double amplitude = base_amplitude * static_cast<double>(volatility_multiplier_);
+    const double amplitude =
+        base_amplitude * static_cast<double>(volatility_multiplier_) * mode_amplitude_scale;
 
     // Frequency multiplier > 1 creates faster oscillations (more frequent spikes).
     const double angle =
-        ((PI * current_time / base_cycle) * static_cast<double>(frequency_multiplier_)) - phase_shift;
+        ((PI * current_time / base_cycle) *
+         static_cast<double>(frequency_multiplier_) *
+         mode_frequency_scale) - phase_shift;
     const double sine_value = std::sin(angle);
     const double traffic_multiplier = 1.0 + (amplitude * (sine_value * sine_value));
 
