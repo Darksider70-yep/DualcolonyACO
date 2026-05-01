@@ -46,6 +46,8 @@ build.ninja
 /scripts/journal_baseline.csv
 /scripts/journal_chart_final.png
 /scripts/journal_statistics.csv
+/scripts/journal_chart_sweep.png
+/scripts/journal_ratio_sweep.csv
 
 # IDE/editor settings
 .vscode/

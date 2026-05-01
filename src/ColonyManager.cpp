@@ -47,7 +47,7 @@ ColonyManager::ColonyManager(TrafficGraph& graph,
       rng_(std::random_device{}()),
       alpha_(alpha),
       beta_(beta),
-      evaporation_rate_(evaporation_rate),
+      evaporation_rate_(std::clamp(evaporation_rate, 0.0f, 1.0f)),
       scout_ratio_(scout_ratio),
       pheromone_deposit_factor_(pheromone_deposit_factor),
       Q_constant_(100.0),  // Pheromone deposition constant
@@ -117,8 +117,18 @@ void ColonyManager::runIteration() {
         ant->moveToCity(0, return_time);
     }
 
-    // Phase 3: Pheromone evaporation
-    traffic_graph_.evaporatePheromones();
+    // Phase 3: Pheromone evaporation (amnesia mechanism)
+    const double evaporation_multiplier = 1.0 - static_cast<double>(evaporation_rate_);
+    for (int i = 0; i < num_cities; ++i) {
+        for (int j = 0; j < num_cities; ++j) {
+            const double current_pheromone =
+                static_cast<double>(traffic_graph_.getPheromoneLevel(i, j));
+            traffic_graph_.setPheromoneLevel(
+                i,
+                j,
+                static_cast<float>(current_pheromone * evaporation_multiplier));
+        }
+    }
 
     // Phase 4: Pheromone Update
     double iteration_best_time = std::numeric_limits<double>::max();
@@ -215,7 +225,7 @@ int ColonyManager::getCurrentIteration() const {
 void ColonyManager::setParameters(float alpha, float beta, float evaporation_rate, float scout_ratio) {
     alpha_ = alpha;
     beta_ = beta;
-    evaporation_rate_ = evaporation_rate;
+    evaporation_rate_ = std::clamp(evaporation_rate, 0.0f, 1.0f);
     scout_ratio_ = scout_ratio;
 
     const int num_workers = static_cast<int>(worker_ants_.size());

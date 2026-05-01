@@ -56,7 +56,7 @@ public:
                   int num_scouts,
                   float alpha = 1.0f,
                   float beta = 2.0f,
-                  float evaporation_rate = 0.1f,
+                  float evaporation_rate = 0.6f,
                   float scout_ratio = 0.2f,
                   float pheromone_deposit_factor = 1.0f);
 

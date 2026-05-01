@@ -4,7 +4,7 @@ import os
 
 def generate_sweep_chart():
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    csv_path = os.path.join(current_dir, "journal_ratio_sweep.csv")
+    csv_path = os.path.join(current_dir, "journal_amnesia.csv")
 
     if not os.path.exists(csv_path):
         print(f"Error: Could not find data file at {csv_path}")
