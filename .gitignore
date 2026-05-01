@@ -54,6 +54,8 @@ build.ninja
 /scripts/journal_baseline_ch150.csv
 /scripts/journal_chart_scaled_ch150.png
 /scripts/journal_scaled_ch150.csv
+/scripts/gamma_ablation_kroA100.csv
+/scripts/journal_chart_gamma.png
 
 # IDE/editor settings
 .vscode/
