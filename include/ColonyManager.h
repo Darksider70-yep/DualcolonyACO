@@ -40,6 +40,11 @@ private:
     double last_iteration_best_time_;
     std::vector<int> best_tour_path_;
 
+    // MMAS support
+    bool mmas_mode_ = false;
+    float tau_min_ = 0.001f;
+    float tau_max_ = 1000.0f;
+
 public:
     /**
      * @brief Constructor for ColonyManager.
@@ -159,6 +164,25 @@ public:
      * @param scout_ratio Ratio in [0, 1] used to allocate scout ants.
      */
     void configurePopulation(int total_ants, float scout_ratio);
+
+    /**
+     * @brief Enable or disable MMAS (Max-Min Ant System) mode.
+     * 
+     * In MMAS mode, only the best ant (iteration or global) deposits pheromones,
+     * and pheromone levels are clamped between tau_min and tau_max.
+     * 
+     * @param enable Whether to enable MMAS mode.
+     * @param tau_min Minimum pheromone level.
+     * @param tau_max Maximum pheromone level.
+     */
+    void enableMMAS(bool enable, float tau_min = 0.001f, float tau_max = 1000.0f);
+
+    /**
+     * @brief Update the pheromone bounds for MMAS.
+     * @param tau_min Minimum pheromone level.
+     * @param tau_max Maximum pheromone level.
+     */
+    void setPheromoneBounds(float tau_min, float tau_max);
 };
 
 #endif // COLONY_MANAGER_H

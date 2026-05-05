@@ -124,44 +124,77 @@ void ColonyManager::runIteration() {
         for (int j = 0; j < num_cities; ++j) {
             const double current_pheromone =
                 static_cast<double>(traffic_graph_.getPheromoneLevel(i, j));
+            double new_pheromone = current_pheromone * evaporation_multiplier;
+            
+            // Apply MMAS min bound after evaporation if in MMAS mode
+            if (mmas_mode_) {
+                new_pheromone = std::max(new_pheromone, static_cast<double>(tau_min_));
+            }
+
             traffic_graph_.setPheromoneLevel(
                 i,
                 j,
-                static_cast<float>(current_pheromone * evaporation_multiplier));
+                static_cast<float>(new_pheromone));
         }
     }
 
     // Phase 4: Pheromone Update
     double iteration_best_time = std::numeric_limits<double>::max();
-    Ant* best_ant = nullptr;
+    Ant* iteration_best_ant = nullptr;
 
-    // Find the best ant in this iteration and deposit pheromones
-    // Worker ants
+    // Find the best ant in this iteration
     for (auto& ant : worker_ants_) {
         double tour_time = ant->getTotalPathTime();
-        
         if (tour_time < iteration_best_time) {
             iteration_best_time = tour_time;
-            best_ant = ant.get();
+            iteration_best_ant = ant.get();
         }
-
-        // Deposit pheromones proportional to tour quality
-        double pheromone_to_drop = Q_constant_ / tour_time;
-        traffic_graph_.depositPheromones(ant->getTour(), pheromone_to_drop);
     }
 
-    // Scout ants
     for (auto& ant : scout_ants_) {
         double tour_time = ant->getTotalPathTime();
-        
         if (tour_time < iteration_best_time) {
             iteration_best_time = tour_time;
-            best_ant = ant.get();
+            iteration_best_ant = ant.get();
+        }
+    }
+
+    // Deposit pheromones
+    if (mmas_mode_) {
+        // MMAS Mode: Only the iteration-best ant deposits pheromones
+        if (iteration_best_ant != nullptr) {
+            double pheromone_to_drop = Q_constant_ / iteration_best_time;
+            traffic_graph_.depositPheromones(iteration_best_ant->getTour(), pheromone_to_drop);
+        }
+    } else {
+        // Standard Mode: All ants deposit pheromones
+        // Worker ants
+        for (auto& ant : worker_ants_) {
+            double tour_time = ant->getTotalPathTime();
+            double pheromone_to_drop = Q_constant_ / tour_time;
+            traffic_graph_.depositPheromones(ant->getTour(), pheromone_to_drop);
         }
 
-        // Scout ants contribute less to global pheromones (exploration-oriented)
-        double pheromone_to_drop = (Q_constant_ / tour_time) * 0.5;
-        traffic_graph_.depositPheromones(ant->getTour(), pheromone_to_drop);
+        // Scout ants
+        for (auto& ant : scout_ants_) {
+            double tour_time = ant->getTotalPathTime();
+            double pheromone_to_drop = (Q_constant_ / tour_time) * 0.5;
+            traffic_graph_.depositPheromones(ant->getTour(), pheromone_to_drop);
+        }
+    }
+
+    // Phase 5: MMAS Pheromone Clamping (Max bound)
+    if (mmas_mode_) {
+        for (int i = 0; i < num_cities; ++i) {
+            for (int j = 0; j < num_cities; ++j) {
+                const float current_val = traffic_graph_.getPheromoneLevel(i, j);
+                if (current_val > tau_max_) {
+                    traffic_graph_.setPheromoneLevel(i, j, tau_max_);
+                } else if (current_val < tau_min_) {
+                    traffic_graph_.setPheromoneLevel(i, j, tau_min_);
+                }
+            }
+        }
     }
 
     // Check against Global Best
@@ -169,8 +202,8 @@ void ColonyManager::runIteration() {
 
     if (iteration_best_time < best_tour_time_) {
         best_tour_time_ = iteration_best_time;
-        if (best_ant != nullptr) {
-            best_tour_path_ = best_ant->getTour();
+        if (iteration_best_ant != nullptr) {
+            best_tour_path_ = iteration_best_ant->getTour();
         }
     }
 
@@ -255,4 +288,15 @@ void ColonyManager::configurePopulation(int total_ants, float scout_ratio) {
     scout_ratio_ = clamped_ratio;
     rebuildAntPopulation(num_workers, num_scouts);
     reset();
+}
+
+void ColonyManager::enableMMAS(bool enable, float tau_min, float tau_max) {
+    mmas_mode_ = enable;
+    tau_min_ = tau_min;
+    tau_max_ = tau_max;
+}
+
+void ColonyManager::setPheromoneBounds(float tau_min, float tau_max) {
+    tau_min_ = tau_min;
+    tau_max_ = tau_max;
 }

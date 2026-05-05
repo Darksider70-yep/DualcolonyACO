@@ -39,6 +39,15 @@ set(GAMMA_ABLATION_SOURCES
 
 add_executable(GammaAblation ${GAMMA_ABLATION_SOURCES})
 
+set(MMAS_BASELINE_SOURCES
+    src/mmas_baseline.cpp
+    src/TrafficGraph.cpp
+    src/Ant.cpp
+    src/ColonyManager.cpp
+)
+
+add_executable(MMASBaseline ${MMAS_BASELINE_SOURCES})
+
 # Set compiler flags for optimization and warnings
 if(MSVC)
     # Microsoft Visual C++
